@@ -24,32 +24,13 @@ class ChartMetadata:
 
 class ChartTemplate:
 
-	coolNames = {}
+	rename = {}
 	chartsFolder = ""
 
 	def __init__(self, path: Path) -> None:
 		self.path = path
 
-		# self.metadata = ChartMetadata()
-
-		self.uData = { # Data from which all chart formats start at
-			"version": "1.0.0",
-			"songName": "Unknown",
-			"artist": "Unknown",
-
-			"difficulties": [],
-			"player": "bf",
-			"girlfriend": "gf",
-			"opponent": "dad",
-			"stage": "stage",
-
-			"events": [],
-			"charts": {},
-			"scrollSpeed": {},
-
-			"timeChanges": [],
-			"generatedBy": "FNF Mod Converter"
-		}
+		self.metadata = ChartMetadata()
 
 		self.jsonData:dict = {}
 		self.sampleChart:dict = {}
@@ -62,14 +43,14 @@ class ChartTemplate:
 		if (json == None):
 			json = self.sampleChart
 
-		return json.get(self.coolNames.get(key, key), None)
+		return json.get(self.rename.get(key, key), None)
 	
-	def getData(self, *keys:str) -> dict:
-		dictionary = {}
+	def updateMetadata(self, *keys:str) -> dict:
 		for key in keys:
-			dictionary[key] = self.getValue(key)
-		
-		return dictionary
+			value = self.getValue(key)
+
+			if (value != None):
+				setattr(self.metadata, key, value)
 	
 	def getSongData(self, json:dict) -> dict:
 		return json
@@ -82,7 +63,8 @@ class ChartTemplate:
 
 	def create(self) -> None:
 		
-		difficulties = self.uData["difficulties"]
+		metadata = self.metadata
+		difficulties:list[str] = metadata.difficulties
 		unorderedDiffs = set()
 
 		for file in self.path.iterdir():
@@ -100,8 +82,9 @@ class ChartTemplate:
 
 					notes = self.parseNoteData(fileJson)
 
-					self.uData["charts"][difficulty] = notes.get("notes")
-					self.uData["scrollSpeed"][difficulty] = notes.get("scrollSpeed")
+					metadata.charts[difficulty] = notes.get("notes")
+					metadata.scrollSpeed[difficulty] = notes.get("scrollSpeed")
+
 					self.sampleChart = fileJson
 
 		for difficulty in Constants.DIFFICULTIES:
@@ -112,7 +95,7 @@ class ChartTemplate:
 		difficulties.extend(unorderedDiffs)
 		del unorderedDiffs
 
-		self.uData.update(self.getData("songName", "player", "girlfriend", "opponent", "stage"))
+		self.updateMetadata("songName", "player", "girlfriend", "opponent", "stage")
 
 		self.onCreate()
 
@@ -125,7 +108,7 @@ class ChartTemplate:
 
 class LegacyChart(ChartTemplate):
 
-	coolNames = {
+	rename = {
 		"songName": "song",
 		"player": "player1",
 		"girlfriend": "gfVersion",
@@ -177,28 +160,27 @@ class BaseChart(ChartTemplate):
 		metadata = deepcopy(Constants.BASE_CHART_METADATA)
 		chart = deepcopy(Constants.BASE_CHART)
 
-		cMetadata = cChart.uData
-		difficulties = cMetadata.get("difficulties", Constants.DIFFICULTIES)
+		cMetadata = cChart.metadata
 
 		# Shortcuts
 
 		playData = metadata["playData"]
 		characters = playData["characters"]
 
-		metadata["songName"] = cMetadata.get("songName", "Unknown")
-		metadata["artist"] = cMetadata.get("artist", "Unknown")
+		metadata["songName"] = cMetadata.songName
+		metadata["artist"] = cMetadata.artist
 		
-		playData["difficulties"] = difficulties
-		playData["stage"] = Utils.stage(cMetadata.get("stage", "stage"))
+		playData["difficulties"] = cMetadata.difficulties
+		playData["stage"] = Utils.stage(cMetadata.stage)
 
-		characters["player"] = Utils.character(cMetadata.get("player", "bf"))
-		characters["girlfriend"] = Utils.character(cMetadata.get("girlfriend", "gf"))
-		characters["opponent"] = Utils.character(cMetadata.get("opponent", "dad"))
+		characters["player"] = Utils.character(cMetadata.player)
+		characters["girlfriend"] = Utils.character(cMetadata.girlfriend)
+		characters["opponent"] = Utils.character(cMetadata.opponent)
 
-		for diff in difficulties:
+		for diff in cMetadata.difficulties:
 			playData["ratings"][diff] = 0
-			chart["scrollSpeed"][diff] = cMetadata.get("scrollSpeed")[diff]
-			chart["notes"][diff] = cMetadata.get("charts")[diff]
+			chart["scrollSpeed"][diff] = cMetadata.scrollSpeed[diff]
+			chart["notes"][diff] = cMetadata.charts[diff]
 
 		return {"m": metadata, "c": chart}
 

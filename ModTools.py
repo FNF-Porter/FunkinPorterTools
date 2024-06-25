@@ -9,16 +9,12 @@ T = TypeVar("T")
 
 class BaseRegistry(ABC, Generic[T]):
 
-	instance = None
-
-	def __init__(self, id:str, dataPath:str) -> None:
+	def __init__(self, id:str, dataPath:Path) -> None:
 		
 		self.id = id
 		self.path = dataPath
 
 		self.entries:dict[str, T] = {}
-
-		self.instance = self
 
 	def listData(self) -> list:
 		return []
@@ -47,33 +43,32 @@ class BaseRegistry(ABC, Generic[T]):
 	def getEntry(self, name:str):
 		return self.entries.get(name, None)
 
+class Mod:
+
+	def __init__(self, name:str, path:str = ""):
+		self.name = name
+		self.path = name
+
+		self.songs = SongRegistry(self)
+		self.songs.loadEntries()
+
+	def getSongs(self):
+		return list(self.songs.entries.keys())
+
 class SongRegistry(BaseRegistry[Objects.ChartTemplate]):
 
-	def __init__(self):
-		super().__init__("SONG", "data")
+	def __init__(self, mod:Mod):
+		self.mod = mod
+		super().__init__("SONG", Path(mod.path, "data"))
 
 	def listData(self) -> list:
 		array = []
 
-		for item in Path(ModManager.modName, self.path).iterdir():
+		for item in self.path.iterdir():
 			if item.is_dir():
 				array.append(item.name)
 
 		return array
 	
 	def createData(self, obj):
-		return Objects.PsychChart(Path(ModManager.modName) / self.path / obj)
-
-class ModManager:
-
-	modName = ""
-	songs = SongRegistry()
-
-	@staticmethod
-	def setup(modName:str):
-		ModManager.modName = modName
-		ModManager.songs.loadEntries()
-
-	@staticmethod
-	def getSongs():
-		return list(ModManager.songs.entries.keys())
+		return Objects.PsychChart(self.path / obj)

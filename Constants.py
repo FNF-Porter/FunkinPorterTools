@@ -2,13 +2,13 @@
 A class full of constants needed for chart conversion.
 """
 
-DIFFICULTIES:list = ["easy", "normal", "hard"]
+DIFFICULTIES:list[str] = ["easy", "normal", "hard"]
 
-STAGES = {
+STAGES:dict[str, str] = {
 	"stage": "mainStage"
 }
 
-CHARACTERS = {
+CHARACTERS:dict[str, str] = {
 	"pico-player": "pico-playable"
 }
 
